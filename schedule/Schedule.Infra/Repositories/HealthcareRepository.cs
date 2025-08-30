@@ -20,7 +20,7 @@ namespace Schedule.Infra.Repositories
             if (entity.HealthcareId == Guid.Empty) throw new ArgumentException("HealthcareId inválido.");
             if (string.IsNullOrWhiteSpace(entity.Name)) throw new ArgumentException("Name é obrigatório.");
             if (string.IsNullOrWhiteSpace(entity.CRM)) throw new ArgumentException("CRM é obrigatório.");
-            if (string.IsNullOrWhiteSpace(entity.Specialty)) throw new ArgumentException("Specialty é obrigatório.");
+            if (string.IsNullOrWhiteSpace(entity.Speciality)) throw new ArgumentException("Specialty é obrigatório.");
 
             entity.CRM = entity.CRM.Trim();
 
@@ -59,7 +59,7 @@ namespace Schedule.Infra.Repositories
             if (entity.HealthcareId == Guid.Empty) throw new ArgumentException("HealthcareId inválido.");
             if (string.IsNullOrWhiteSpace(entity.Name)) throw new ArgumentException("Name é obrigatório.");
             if (string.IsNullOrWhiteSpace(entity.CRM)) throw new ArgumentException("CRM é obrigatório.");
-            if (string.IsNullOrWhiteSpace(entity.Specialty)) throw new ArgumentException("Specialty é obrigatório.");
+            if (string.IsNullOrWhiteSpace(entity.Speciality)) throw new ArgumentException("Speciality é obrigatório.");
 
             entity.CRM = entity.CRM.Trim();
 
@@ -185,5 +185,7 @@ namespace Schedule.Infra.Repositories
 
             return count > 0;
         }
+
+      
     }
 }
