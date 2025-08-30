@@ -1,0 +1,32 @@
+name: Task
+description: Tarefa técnica ou de manutenção
+title: "[Task] "
+labels: ["type:task"]
+body:
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo
+      description: Explique a finalidade da tarefa
+      placeholder: "Ex.: Configurar pipeline CI/CD para rodar testes"
+    validations:
+      required: true
+
+  - type: textarea
+    id: escopo
+    attributes:
+      label: Escopo da tarefa
+      description: Liste o que precisa ser feito
+      placeholder: "- Ajustar Dockerfile\n- Criar workflow no GitHub Actions\n- Documentar no README"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: criterios
+    attributes:
+      label: Critérios de conclusão
+      description: Marque o que deve estar pronto para encerrar a tarefa
+      options:
+        - label: Código revisado
+        - label: Testes passaram no CI
+        - label: Documentação atualizada
