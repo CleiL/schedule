@@ -1,0 +1,33 @@
+name: Feature
+description: Nova funcionalidade
+title: "[Feature] "
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Explique o problema/objetivo (por que isso existe?)
+      placeholder: "Ex.: Precisamos permitir cadastro da entidade para iniciar o fluxo…"
+    validations:
+      required: true
+
+  - type: textarea
+    id: escopo
+    attributes:
+      label: Escopo técnico
+      description: Entidades, endpoints, UI/telas, regras de negócio
+      placeholder: "Ex:- Entidade Entidade\n- POST /api/entidade"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: criterios
+    attributes:
+      label: Critérios de Aceite
+      description: Marque o que precisa estar pronto para considerar entregue
+      options:
+        - label: Fluxo coberto com testes
+        - label: Swagger/Docs atualizados
+        - label: Script SQL/migration (se necessário)
+        - label: Sem quebra de compatibilidade
