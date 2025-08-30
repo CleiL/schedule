@@ -1,0 +1,36 @@
+name: Bug
+description: Reportar um problema encontrado
+title: "[Bug] "
+labels: ["type:bug"]
+body:
+  - type: textarea
+    id: passos
+    attributes:
+      label: Passos para reproduzir
+      description: Detalhe como reproduzir o bug passo a passo
+      placeholder: "1. Acessar a tela X\n2. Clicar no botão Y\n3. Ocorre erro Z"
+    validations:
+      required: true
+
+  - type: textarea
+    id: esperado
+    attributes:
+      label: Comportamento esperado vs. obtido
+      description: O que deveria acontecer e o que aconteceu de fato
+      placeholder: "Esperado: ...\nObtido: ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidencias
+    attributes:
+      label: Evidências
+      description: Inclua prints, logs, erros de console ou outros detalhes
+      placeholder: "Cole aqui prints ou trechos de log"
+
+  - type: input
+    id: versao
+    attributes:
+      label: Versão/commit
+      description: Informe a versão, release ou commit onde o bug foi visto
+      placeholder: "v0.1.3 ou commit abc123"
