@@ -7,12 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Data\Context\" />
-    <Folder Include="Data\Context\Dapper\" />
-    <Folder Include="Data\DependencyInjection\" />
-    <Folder Include="Data\DependencyInjection\Configuration\" />
-    <Folder Include="Data\DependencyInjection\Configuration\Uow\" />
-    <Folder Include="Repositories\" />
+    <PackageReference Include="Dapper" Version="2.1.66" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.19" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Schedule.Core\Schedule.Core.csproj" />
   </ItemGroup>
 
 </Project>
