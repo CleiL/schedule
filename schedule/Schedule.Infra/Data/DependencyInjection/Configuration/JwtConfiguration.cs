@@ -13,7 +13,7 @@ namespace Schedule.Infra.Data.DependencyInjection.Configuration
         {
             var jwtSettings = configuration.GetSection("Jwt");
 
-            string secretKey = jwtSettings["Key"]
+            string secretKey = jwtSettings["SecretKey"]
                 ?? throw new InvalidOperationException(
                     "JWT SecretKey is not configured properly in appsettings.json. Please ensure that a valid key is provided."
                 );

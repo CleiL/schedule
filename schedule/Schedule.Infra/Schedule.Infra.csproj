@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Schedule.Application\Schedule.Application.csproj" />
     <ProjectReference Include="..\Schedule.Core\Schedule.Core.csproj" />
   </ItemGroup>
 

@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Schedule.Application.Interfaces;
+using Schedule.Application.Services;
 using Schedule.Core.Entities;
 using Schedule.Core.Interfaces;
 using Schedule.Infra.Data.DependencyInjection.Configuration.Uow;
@@ -18,13 +20,20 @@ namespace Schedule.Infra.Data.DependencyInjection
 
             services.AddScoped<Context.SqlConnectionFactory>();
 
+            services.AddScoped<IAuthService, AuthService>();
+
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IUserService, UserService>();
 
             services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+            services.AddScoped<IAppointmentService, AppointmentService>();
 
             services.AddScoped<IHealthcareRepository, HealthcareRepository>();
+            services.AddScoped<IHealthcareService, HealthcareService>();
 
             services.AddScoped<IPatientRepository, PatientRepository>();
+            services.AddScoped<IPatientService, PatientService>();
+
             return services;
         }
     }

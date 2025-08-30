@@ -17,13 +17,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Schedule.Core\Schedule.Core.csproj" />
+    <ProjectReference Include="..\..\Schedule.Infra\Schedule.Infra.csproj" />
     <ProjectReference Include="..\schedule.client\schedule.client.esproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Controllers\" />
   </ItemGroup>
 
 </Project>

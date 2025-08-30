@@ -34,6 +34,9 @@ namespace Schedule.Core.Interfaces
         /// <param name="healthcareId"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        Task<IEnumerable<DateTime>> GetProfessionalBusySchedules(Guid healthcareId, CancellationToken ct = default);
+        Task<IEnumerable<DateTime>> GetProfessionalBusySchedules(Guid healthcareId, DateOnly day, CancellationToken ct = default);
+
+        Task<bool> ExistsPatientAppointmentWithHealthcare( Guid patientId, Guid healthcareId, DateOnly day, CancellationToken ct = default);
+
     }
 }

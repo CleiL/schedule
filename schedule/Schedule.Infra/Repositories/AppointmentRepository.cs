@@ -223,18 +223,24 @@ namespace Schedule.Infra.Repositories
         /// Obs: sua assinatura não recebe "dia"; então retorno a partir de agora.
         /// Ajuste se quiser filtrar por dia específico.
         /// </summary>
-        public async Task<IEnumerable<DateTime>> GetProfessionalBusySchedules(Guid healthcareId, CancellationToken ct = default)
+        public async Task<IEnumerable<DateTime>> GetProfessionalBusySchedules(Guid healthcareId, DateOnly day, CancellationToken ct = default)
         {
-            const string sql = """
-                SELECT StartAt
-                  FROM dbo.Appointments
-                 WHERE HealthcareId = @HealthcareId
-                   AND StartAt >= SYSUTCDATETIME()
-                 ORDER BY StartAt;
-                """;
+            var dayStart = day.ToDateTime(TimeOnly.MinValue);
+            var dayEnd = dayStart.AddDays(1);
 
-            return await Conn.QueryAsync<DateTime>(new CommandDefinition(
-                sql, new { HealthcareId = healthcareId }, transaction: Tx, commandTimeout: 15, cancellationToken: ct));
+            const string sql = """
+            SELECT StartAt
+              FROM dbo.Appointments
+             WHERE HealthcareId = @HealthcareId
+               AND StartAt >= @DayStart
+               AND StartAt <  @DayEnd
+             ORDER BY StartAt;
+            """;
+
+            return await Conn.QueryAsync<DateTime>(
+                new CommandDefinition(sql,
+                    new { HealthcareId = healthcareId, DayStart = dayStart, DayEnd = dayEnd },
+                    transaction: Tx, commandTimeout: 15, cancellationToken: ct));
         }
 
         // --------- helpers privados ---------
@@ -271,6 +277,28 @@ namespace Schedule.Infra.Repositories
             var exists = await Conn.ExecuteScalarAsync<int?>(
                 new CommandDefinition(sql, new { PatientId = patientId, StartAt = startAt, EndAt = endAt },
                                       transaction: Tx, commandTimeout: 15, cancellationToken: ct));
+
+            return exists.HasValue;
+        }
+
+        public async Task<bool> ExistsPatientAppointmentWithHealthcare(Guid patientId, Guid healthcareId, DateOnly day, CancellationToken ct = default)
+        {
+            var dayStart = day.ToDateTime(TimeOnly.MinValue);
+            var dayEnd = dayStart.AddDays(1);
+
+            const string sql = """
+            SELECT 1
+              FROM dbo.Appointments
+             WHERE PatientId    = @PatientId
+               AND HealthcareId = @HealthcareId
+               AND StartAt >= @DayStart
+               AND StartAt <  @DayEnd;
+            """;
+
+            var exists = await Conn.ExecuteScalarAsync<int?>(
+                new CommandDefinition(sql,
+                    new { PatientId = patientId, HealthcareId = healthcareId, DayStart = dayStart, DayEnd = dayEnd },
+                    transaction: Tx, commandTimeout: 15, cancellationToken: ct));
 
             return exists.HasValue;
         }
