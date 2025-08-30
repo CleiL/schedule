@@ -1,7 +1,7 @@
 ﻿namespace Schedule.Core.Entities
 {
-    public class DbOptions
+    public sealed class DbOptions
     {
-        public string ConnectionString { get; set; } = string.Empty;
+        public string? ConnectionString { get; set; }
     }
 }
