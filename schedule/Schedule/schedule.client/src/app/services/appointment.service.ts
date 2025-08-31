@@ -3,8 +3,8 @@ import { HttpClient } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { AgendaSlotDto } from "../interfaces/agenda";
 import { DoctorSchedulesResponseDto } from "../interfaces/consulta";
-import { environment } from "../../environments/environment";
 import { CreateAppointmentDto, PatientSchedulesResponseDto } from "../interfaces/appointment";
+import { environment } from "../../environments/environment.prod";
 
 export interface SchedullSlotDto {
   hour: string;     // vem ISO do backend (DateTime)
@@ -14,7 +14,7 @@ export interface SchedullSlotDto {
 @Injectable({ providedIn: "root" })
 export class AppointmentService {
 
-  private apiUrl = environment.apiUrls[0];
+  private apiUrl = environment.apiBaseUrl;
 
   constructor(private http: HttpClient) { }
 

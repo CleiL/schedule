@@ -6,19 +6,21 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// -------------------- LOG --------------------
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .WriteTo.Console()
     .WriteTo.File(
-        path: "logs/schedule-.log",         
+        path: "logs/schedule-.log",
         rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 14,        
+        retainedFileCountLimit: 14,
         outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj}{NewLine}{Exception}"
     )
     .CreateLogger();
 
 builder.Host.UseSerilog();
 
+// -------------------- MVC/JSON --------------------
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
     {
@@ -26,9 +28,11 @@ builder.Services.AddControllers()
         o.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
         o.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
     });
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
 builder.Services.AddEndpointsApiExplorer();
 
+// -------------------- Swagger --------------------
+// Em Docker (Production) queremos Swagger ligado por config: EnableSwagger=true
 builder.Services.AddSwaggerGen(opt =>
 {
     opt.SwaggerDoc("v1", new() { Title = "Schedule API", Version = "v1" });
@@ -57,57 +61,67 @@ builder.Services.AddSwaggerGen(opt =>
     });
 });
 
+// -------------------- CORS --------------------
+// Origem do front no Nginx: http://localhost (porta 80)
+var allowedOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
+                     ?? new[] { "http://localhost" };
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("Dev", policy =>
+    options.AddPolicy("Web", policy =>
     {
         policy
-            // permite qualquer origem que seja localhost (http ou https)
-            .SetIsOriginAllowed(origin =>
-                origin.StartsWith("http://localhost") ||
-                origin.StartsWith("https://localhost"))
+            .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials(); // se voc� usa cookies/Auth header cruzado
+            .AllowCredentials();
     });
 });
 
+// -------------------- Options (Configuration Binding) --------------------
 builder.Services.Configure<DbOptions>(
-    builder.Configuration.GetSection("ConnectionStrings")); 
+    builder.Configuration.GetSection("ConnectionStrings"));
 
+// ATENÇÃO: a seção é "Jwt" (logo, use variáveis de ambiente Jwt__Issuer, Jwt__Audience, etc.)
 builder.Services.Configure<JWTOptions>(
     builder.Configuration.GetSection("Jwt"));
 
-builder.Services.AddInfraData(builder.Configuration); 
-
+// -------------------- Infra / Auth --------------------
+builder.Services.AddInfraData(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
+// Se esta API NÃO vai servir arquivos estáticos/SPAs, você pode remover as 2 linhas abaixo.
+// Elas não quebram, mas também não são necessárias quando a SPA está no Nginx.
+// app.UseDefaultFiles();
+// app.UseStaticFiles();
 
-if (app.Environment.IsDevelopment())
+// -------------------- Swagger ligado por flag --------------------
+var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger", false);
+if (app.Environment.IsDevelopment() || enableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-
-    app.UseCors("Dev");
 }
-else
+
+// -------------------- CORS sempre (para o front no Nginx) --------------------
+app.UseCors("Web");
+
+// HTTPS opcional por flag
+var enableHttpsRedirect = builder.Configuration.GetValue<bool>("EnableHttpsRedirect", false);
+if (enableHttpsRedirect)
 {
-    app.UseCors(); 
+    app.UseHttpsRedirection();
 }
-
-app.UseHttpsRedirection();
 
 app.UseAuthentication();
-
 app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapFallbackToFile("/index.html");
+// Se a API não serve SPA, pode remover a linha abaixo.
+// app.MapFallbackToFile("/index.html");
 
 // aplica o schema automaticamente na subida do app
 using (var scope = app.Services.CreateScope())
@@ -116,13 +130,11 @@ using (var scope = app.Services.CreateScope())
     await init.EnsureCreatedAsync();
 }
 
+app.MapGet("/healthz", () => Results.Ok("ok"));
 
 app.Run();
 
-
-/// --------------------
-/// Converters auxiliares
-/// --------------------
+/// -------------------- Converters auxiliares --------------------
 public sealed class DateOnlyJsonConverter : System.Text.Json.Serialization.JsonConverter<DateOnly>
 {
     private const string Format = "yyyy-MM-dd";

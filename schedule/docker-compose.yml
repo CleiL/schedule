@@ -1,0 +1,85 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: schedule_sql
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "${SA_PASSWORD}"
+    ports: ["1433:1433"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/1433' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  db-init:
+    image: mcr.microsoft.com/mssql-tools
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SA_PASSWORD: "${SA_PASSWORD}"
+      DB_NAME: "${DB_NAME}"
+    volumes:
+      - ./Schedule.Infra/Data/Scripts/schema.sql:/schema/schema.sql:ro
+    entrypoint:
+      - /bin/sh
+      - -lc
+      - |
+        set -e
+        cmd=/opt/mssql-tools/bin/sqlcmd
+        if [ ! -x "$$cmd" ]; then cmd=/opt/mssql-tools18/bin/sqlcmd; fi
+        echo "Using: $$cmd"
+
+        "$$cmd" -S db -U sa -P "$$SA_PASSWORD" -Q "IF DB_ID('$$DB_NAME') IS NULL CREATE DATABASE [$$DB_NAME]"
+        "$$cmd" -S db -U sa -P "$$SA_PASSWORD" -d "$$DB_NAME" -i /schema/schema.sql
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: Schedule/Schedule.Server/Dockerfile
+    container_name: schedule_api
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://0.0.0.0:8080"
+      ConnectionStrings__DefaultConnection: >
+        Server=db;Database=${DB_NAME};
+        User ID=sa;Password=${SA_PASSWORD};
+        TrustServerCertificate=True;Encrypt=False
+
+      # ====== ⚠ seção Jwt (bate com Program.cs) ⚠ ======
+      Jwt__Issuer: "cinovasyn.coom.br"
+      Jwt__Audience: "cinovasyn.coom.br"
+      Jwt__SecretKey: "${JWT_SECRET}"
+      Jwt__ExpiresMinutes: "120"
+
+      # ====== features via config ======
+      EnableSwagger: "true"
+      Cors__Origins__0: "http://localhost"
+    depends_on:
+      db:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    ports: ["8080:8080"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  web:
+    build:
+      context: Schedule/schedule.client
+      dockerfile: Dockerfile
+    container_name: schedule_web
+    depends_on:
+      api:
+        condition: service_started
+    ports: ["80:80"]
+    restart: unless-stopped

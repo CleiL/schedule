@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { ICustomer } from '../interfaces/customer';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../../environments/environment';
+import { environment } from "../../environments/environment.prod";
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +11,7 @@ export class CustomerService {
 
   constructor(private http: HttpClient) { }
 
-  private apiUrl = environment.apiUrls;
+  private apiUrl = environment.apiBaseUrl;
 
   getUser(): Observable<ICustomer> {
     return this.http.get<ICustomer>(`${this.apiUrl}/auth/customer/`);

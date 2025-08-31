@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { IProfileService, ProfileDto } from '../contracts/profile.tokens';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../../environments/environment';
+import { environment } from "../../environments/environment.prod";
 
 export interface Paciente {
   id: string;
@@ -24,7 +24,7 @@ export class PatientService implements IProfileService {
     return this.http.post<void>('/api/pacientes/me/password', payload);
   }
 
-  private apiUrl = environment.apiUrls[0];
+  private apiUrl = environment.apiBaseUrl;
 
   getById(id: string): Observable<Paciente> {
     // Ajuste o path se o seu controller for diferente

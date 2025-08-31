@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { environment } from '../../environments/environment';
+import { environment } from "../../environments/environment.prod";
 import { Observable, tap } from 'rxjs';
 import { LoginResponse } from '../interfaces/login';
 
@@ -13,7 +13,7 @@ export class AuthService {
     private http: HttpClient,
   ) { }
 
-  private apiUrl = environment.apiUrls[0];
+  private apiUrl = environment.apiBaseUrl;
 
   login(data: { email: string, password: string }): Observable<any> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/Auth/login`, data).pipe(
