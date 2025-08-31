@@ -152,4 +152,26 @@ BEGIN
     )
     CREATE INDEX IX_Appointments_Patient_Date
         ON dbo.Appointments (PatientId, [Date], StartAt DESC);
+
+END;
+
+-- Admin seed idempotente (fora de qualquer IF)
+IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE Email = N'admin@email.com')
+BEGIN
+  INSERT INTO dbo.Users (UserId, Email, PasswordHash, [Role], PatientId, HealthcareId)
+  VALUES (
+    NEWID(),
+    N'admin@email.com',
+    N'$2a$11$svKtLzdWVNChldbJLPg2g.Rmed8mUeqExJr977tdPNp8WJBrAMayG',
+    N'Admin',
+    NULL,
+    NULL
+  );
+END
+ELSE
+BEGIN
+  -- se já existe, garante que é Admin
+  UPDATE dbo.Users
+     SET [Role] = N'Admin', PatientId = NULL, HealthcareId = NULL
+   WHERE Email = N'admin@email.com';
 END;
