@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Schedule.Application.Dtos.Users;
 using Schedule.Application.Interfaces;
@@ -10,17 +11,20 @@ namespace Schedule.Server.Controllers
     [ApiController]
     public class UsersController(IUserService svc) : ControllerBase
     {
+        [Authorize]
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<UserResponseDto>))]
         public async Task<ActionResult<IEnumerable<UserDto.UserResponseDto>>> GetAll(CancellationToken ct)
             => Ok(await svc.GetAllAsync(ct));
 
+        [Authorize]
         [HttpGet("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(UserResponseDto))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<UserDto.UserResponseDto?>> GetById(Guid id, CancellationToken ct)
             => Ok(await svc.GetByIdAsync(id, ct));
 
+        [Authorize]
         [HttpPost]
         [Consumes("application/json")]
         [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(UserResponseDto))]
@@ -33,6 +37,7 @@ namespace Schedule.Server.Controllers
             return Ok(created);
         }
 
+        [Authorize]
         [HttpPut("{id:guid}")]
         [Consumes("application/json")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -47,6 +52,7 @@ namespace Schedule.Server.Controllers
             return Ok(updated);
         }
 
+        [Authorize]
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

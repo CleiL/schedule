@@ -2,10 +2,22 @@ using Schedule.Core.Entities;
 using Schedule.Core.Interfaces;
 using Schedule.Infra.Data.DependencyInjection;
 using Schedule.Infra.Data.DependencyInjection.Configuration;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .WriteTo.Console()
+    .WriteTo.File(
+        path: "logs/schedule-.log",         
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 14,        
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj}{NewLine}{Exception}"
+    )
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
@@ -27,7 +39,7 @@ builder.Services.AddSwaggerGen(opt =>
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Envie: Bearer {seu_token}"
+        Description = "Cole APENAS o token (sem 'Bearer ')"
     });
     opt.AddSecurityRequirement(new()
     {
@@ -45,13 +57,19 @@ builder.Services.AddSwaggerGen(opt =>
     });
 });
 
-builder.Services.AddCors(opt =>
+builder.Services.AddCors(options =>
 {
-    opt.AddDefaultPolicy(p =>
-        p.WithOrigins("https://localhost:5173", "http://localhost:5173")
-         .AllowAnyHeader()
-         .AllowAnyMethod()
-         .AllowCredentials());
+    options.AddPolicy("Dev", policy =>
+    {
+        policy
+            // permite qualquer origem que seja localhost (http ou https)
+            .SetIsOriginAllowed(origin =>
+                origin.StartsWith("http://localhost") ||
+                origin.StartsWith("https://localhost"))
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials(); // se você usa cookies/Auth header cruzado
+    });
 });
 
 builder.Services.Configure<DbOptions>(
@@ -69,16 +87,19 @@ var app = builder.Build();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+
+    app.UseCors("Dev");
+}
+else
+{
+    app.UseCors(); 
 }
 
 app.UseHttpsRedirection();
-
-app.UseCors();   
 
 app.UseAuthentication();
 

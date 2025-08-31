@@ -8,13 +8,6 @@
     <BuildOutputFolder>$(MSBuildProjectDirectory)\dist\schedule.client\browser\</BuildOutputFolder>
   </PropertyGroup>
   <ItemGroup>
-    <Folder Include="src\app\contracts\" />
-    <Folder Include="src\app\guards\" />
-    <Folder Include="src\app\interfaces\" />
-    <Folder Include="src\app\validators\" />
     <Folder Include="src\app\services\" />
-    <Folder Include="src\app\pages\" />
-    <Folder Include="src\app\components\" />
-    <Folder Include="src\environments\" />
   </ItemGroup>
 </Project>
