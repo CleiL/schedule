@@ -9,4 +9,7 @@ namespace Schedule.Application.Dtos.Patients
         public record PatientResponseDto(Guid Id, string Name, string Email, string CPF);
         public record PatientSchedulesResponseDto(Guid Id, string Name, string Email, string CPF, List<AppointmentsResponseDto> Schedulles);
     }
+
+   
+
 }

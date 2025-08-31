@@ -10,5 +10,6 @@ namespace Schedule.Application.Interfaces
         Task<HealthcareResponseDto?> GetByIdAsync(Guid id, CancellationToken ct = default);
         Task<IEnumerable<HealthcareResponseDto>> GetAllAsync(CancellationToken ct = default);
         Task<IEnumerable<HealthcareSchedulesResponseDto>> GetAppointmentAsync(CancellationToken ct = default);
+        Task<HealthcareSchedulesResponseDto?> GetAppointmentByIdAsync(Guid id, CancellationToken ct = default);
     }
 }

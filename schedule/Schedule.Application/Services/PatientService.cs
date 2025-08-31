@@ -183,6 +183,46 @@ namespace Schedule.Application.Services
             }
         }
 
+        public async Task<PatientSchedulesResponseDto?> GetAppointmentByIdAsync(Guid patientId, CancellationToken ct = default)
+        {
+            await using var uow = await _uowFactory.CreateAsync(ct);
+            try
+            {
+                await uow.BeginAsync(ct);
+
+                // busca paciente
+                var paciente = await _repository.GetByIdAsync(patientId, ct);
+                if (paciente == null) return null;
+
+                // busca consultas do paciente
+                var consultas = await _appointments.GetByPatientAsync(patientId, ct);
+
+                var dto = new PatientSchedulesResponseDto
+                (
+                    paciente.PatientId,
+                    paciente.Name,
+                    paciente.Email,
+                    paciente.CPF,
+                    consultas.Select(c => new AppointmentsResponseDto(
+                        c.HealthcareId,
+                        c.PatientId,
+                        c.Date,
+                        c.EndAt
+                    )).ToList()
+                );
+
+                await uow.CommitAsync(ct);
+                return dto;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao buscar consultas do paciente {PatientId}", patientId);
+                await uow.RollbackAsync(ct);
+                throw;
+            }
+        }
+
+
         public async Task<PatientResponseDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
         {
             using (_logger.BeginScope(new Dictionary<string, object?>

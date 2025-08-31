@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Schedule.Application.Dtos.Healthcares;
 using Schedule.Application.Interfaces;
 using static Schedule.Application.Dtos.Healthcares.HealthcareDto;
+using static Schedule.Application.Dtos.Patients.PatientDot;
 
 namespace Schedule.Server.Controllers
 {
@@ -10,12 +12,14 @@ namespace Schedule.Server.Controllers
     [ApiController]
     public class HealthcaresController(IHealthcareService svc) : ControllerBase
     {
+        [Authorize]
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<HealthcareResponseDto>))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ProblemDetails))]
         public async Task<ActionResult<IEnumerable<HealthcareDto.HealthcareResponseDto>>> GetAll(CancellationToken ct)
             => Ok(await svc.GetAllAsync(ct));
 
+        [Authorize]
         [HttpGet("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(HealthcareResponseDto))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -23,6 +27,7 @@ namespace Schedule.Server.Controllers
         public async Task<ActionResult<HealthcareDto.HealthcareResponseDto?>> GetById(Guid id, CancellationToken ct)
             => Ok(await svc.GetByIdAsync(id, ct));
 
+        [Authorize]
         [HttpPost]
         [Consumes("application/json")]
         [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(HealthcareResponseDto))]
@@ -36,6 +41,7 @@ namespace Schedule.Server.Controllers
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
+        [Authorize]
         [HttpPut("{id:guid}")]
         [Consumes("application/json")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -51,6 +57,7 @@ namespace Schedule.Server.Controllers
             return Ok(updated);
         }
 
+        [Authorize]
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -61,11 +68,23 @@ namespace Schedule.Server.Controllers
             return ok ? NoContent() : NotFound();
         }
 
+        [Authorize]
         [HttpGet("schedules")]
         public async Task<ActionResult<IEnumerable<HealthcareDto.HealthcareSchedulesResponseDto>>> GetSchedules(CancellationToken ct)
         {
             var result = await svc.GetAppointmentAsync(ct);
             return Ok(result);
+        }
+
+        [Authorize]
+        [HttpGet("healthcare/{id:guid}/schedules")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(HealthcareSchedulesResponseDto))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<HealthcareSchedulesResponseDto>> GetByHealthcare(Guid id, CancellationToken ct)
+        {
+            var dto = await svc.GetAppointmentByIdAsync(id, ct);
+            if (dto == null) return NotFound();
+            return Ok(dto);
         }
     }
 }

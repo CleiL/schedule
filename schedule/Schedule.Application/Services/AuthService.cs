@@ -112,6 +112,7 @@ namespace Schedule.Application.Services
                         UserId = Guid.NewGuid(),
                         Email = email,
                         PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password!),
+                        HealthcareId = medico.HealthcareId,
                         Role = "Medico"
                     };
                     await _users.CreateAsync(user);
@@ -170,6 +171,7 @@ namespace Schedule.Application.Services
                         UserId = Guid.NewGuid(),
                         Email = email,
                         PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password!),
+                        PatientId = paciente.PatientId,
                         Role = "Paciente"
                     };
                     await _users.CreateAsync(user);
@@ -192,13 +194,18 @@ namespace Schedule.Application.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.SecretKey!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            string subId = user.PatientId?.ToString()
+             ?? user.HealthcareId?.ToString()
+             ?? user.UserId.ToString();
+
             var claims = new List<Claim>
-        {
-            new(ClaimTypes.Name, user.Email!),
-            new(ClaimTypes.Email, user.Email!),
-            new(ClaimTypes.Role, user.Role ?? "user"),
-            new("uid", user.UserId.ToString())
-        };
+            {
+                new(JwtRegisteredClaimNames.Sub, subId),
+                new(ClaimTypes.Name, user.Email!),
+                new(ClaimTypes.Email, user.Email!),
+                new(ClaimTypes.Role, user.Role ?? "user"),
+                new("uid", user.UserId.ToString())
+            };
             if (user.PatientId.HasValue) claims.Add(new Claim("pid", user.PatientId.Value.ToString()));
             if (user.HealthcareId.HasValue) claims.Add(new Claim("hid", user.HealthcareId.Value.ToString()));
 

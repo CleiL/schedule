@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using static Schedule.Application.Dtos.Appointments.AppointmentDto;
 using static Schedule.Application.Dtos.Healthcares.HealthcareDto;
+using static Schedule.Application.Dtos.Patients.PatientDot;
 
 namespace Schedule.Application.Services
 {
@@ -185,6 +186,46 @@ namespace Schedule.Application.Services
             }
             catch
             {
+                await uow.RollbackAsync(ct);
+                throw;
+            }
+        }
+
+        public async Task<HealthcareSchedulesResponseDto?> GetAppointmentByIdAsync(Guid id, CancellationToken ct = default)
+        {
+            await using var uow = await _uowFactory.CreateAsync(ct);
+            try
+            {
+                await uow.BeginAsync(ct);
+
+                // busca paciente
+                var medico = await _repository.GetByIdAsync(id, ct);
+                if (medico == null) return null;
+
+                // busca consultas do paciente
+                var consultas = await _appointments.GetByHealthcareAsync(id, ct);
+
+                var dto = new HealthcareSchedulesResponseDto
+                (
+                    medico.HealthcareId,
+                    medico.Name,
+                    medico.Email,
+                    medico.CRM,
+                    medico.Speciality,
+                    consultas.Select(c => new AppointmentsResponseDto(
+                        c.HealthcareId,
+                        c.PatientId,
+                        c.Date,
+                        c.EndAt
+                    )).ToList()
+                );
+
+                await uow.CommitAsync(ct);
+                return dto;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao buscar consultas do paciente {PatientId}", id);
                 await uow.RollbackAsync(ct);
                 throw;
             }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Schedule.Application.Interfaces;
 using static Schedule.Application.Dtos.Appointments.AppointmentDto;
 
@@ -8,6 +9,7 @@ namespace Schedule.Server.Controllers
     [ApiController]
     public class AppointmentsController(IAppointmentService svc) : ControllerBase
     {
+        [Authorize]
         // GET api/appointments/professional/{id}/consultations
         [HttpGet("professional/{id:guid}/consultations")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<AppointmentsResponseDto>))]
@@ -15,6 +17,7 @@ namespace Schedule.Server.Controllers
         public async Task<ActionResult<IEnumerable<AppointmentsResponseDto>>> GetByProfessional( Guid id, CancellationToken ct)
             => Ok(await svc.GetConsultationsByProfessionalAsync(id, ct));
 
+        [Authorize]
         // GET api/appointments/professional/{id}/schedule?day=2025-09-01
         [HttpGet("professional/{id:guid}/schedule")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ScheduleSltoDto>))]
@@ -28,6 +31,7 @@ namespace Schedule.Server.Controllers
             return Ok(slots);
         }
 
+        [Authorize]
         // POST api/appointments
         [HttpPost]
         [Consumes("application/json")]
