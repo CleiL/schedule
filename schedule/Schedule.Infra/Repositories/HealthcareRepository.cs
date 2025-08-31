@@ -20,7 +20,7 @@ namespace Schedule.Infra.Repositories
             if (entity.HealthcareId == Guid.Empty) throw new ArgumentException("HealthcareId inválido.");
             if (string.IsNullOrWhiteSpace(entity.Name)) throw new ArgumentException("Name é obrigatório.");
             if (string.IsNullOrWhiteSpace(entity.CRM)) throw new ArgumentException("CRM é obrigatório.");
-            if (string.IsNullOrWhiteSpace(entity.Speciality)) throw new ArgumentException("Specialty é obrigatório.");
+            if (string.IsNullOrWhiteSpace(entity.Speciality)) throw new ArgumentException("Speciality é obrigatório.");
 
             entity.CRM = entity.CRM.Trim();
 
@@ -32,8 +32,8 @@ namespace Schedule.Infra.Repositories
             }))
             {
                 const string sql = """
-                    INSERT INTO dbo.Healthcare (HealthcareId, Name, Email, CRM, Specialty)
-                    VALUES (@HealthcareId, @Name, @Email, @CRM, @Specialty);
+                    INSERT INTO dbo.Healthcare (HealthcareId, Name, Email, CRM, Speciality)
+                    VALUES (@HealthcareId, @Name, @Email, @CRM, @Speciality);
                     """;
                 try
                 {
@@ -74,7 +74,7 @@ namespace Schedule.Infra.Repositories
                        SET Name = @Name,
                            Email = @Email,
                            CRM = @CRM,
-                           Specialty = @Specialty
+                           Speciality = @Speciality
                      WHERE HealthcareId = @HealthcareId;
                     """;
                 try
@@ -120,7 +120,7 @@ namespace Schedule.Infra.Repositories
         public async Task<Healthcare?> GetByIdAsync(Guid id, CancellationToken ct = default)
         {
             const string sql = """
-                SELECT HealthcareId, Name, Email, CRM, Specialty
+                SELECT HealthcareId, Name, Email, CRM, Speciality
                   FROM dbo.Healthcare
                  WHERE HealthcareId = @id;
                 """;
@@ -132,7 +132,7 @@ namespace Schedule.Infra.Repositories
         public async Task<IEnumerable<Healthcare>> GetAllAsync(CancellationToken ct = default)
         {
             const string sql = """
-                SELECT HealthcareId, Name, Email, CRM, Specialty
+                SELECT HealthcareId, Name, Email, CRM, Speciality
                   FROM dbo.Healthcare
                  ORDER BY Name;
                 """;

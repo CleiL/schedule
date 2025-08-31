@@ -26,7 +26,7 @@ namespace Schedule.Application.Services
         private static readonly TimeOnly FimExclusivo = new(18, 0);
 
 
-        public async Task<IEnumerable<AppointmentsReponseDto>> GetConsultationsByProfessionalAsync(Guid id, CancellationToken ct = default)
+        public async Task<IEnumerable<AppointmentsResponseDto>> GetConsultationsByProfessionalAsync(Guid id, CancellationToken ct = default)
         {
             using (_logger.BeginScope(new Dictionary<string, object?>
             {
@@ -43,7 +43,7 @@ namespace Schedule.Application.Services
 
                     await uow.CommitAsync(ct);
 
-                    return consultas.Select(c => new AppointmentsReponseDto
+                    return consultas.Select(c => new AppointmentsResponseDto
                     (
                         c.HealthcareId,
                         c.PatientId,
@@ -95,7 +95,7 @@ namespace Schedule.Application.Services
             }
         }
 
-        public async Task<AppointmentsReponseDto> ScheduleAsync(AppointmentCreateDto dto, CancellationToken ct = default)
+        public async Task<AppointmentsResponseDto> ScheduleAsync(AppointmentCreateDto dto, CancellationToken ct = default)
         {
             using (_logger.BeginScope(new Dictionary<string, object?>
             {
@@ -145,7 +145,7 @@ namespace Schedule.Application.Services
 
                     _logger.LogInformation("Consulta {AppointmentId} agendada com sucesso", entity.AppointmentId);
 
-                    return new AppointmentsReponseDto(
+                    return new AppointmentsResponseDto(
                         dto.HealthcareId,
                         dto.PatientId,
                         DateOnly.FromDateTime(startAt),

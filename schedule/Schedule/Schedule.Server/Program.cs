@@ -1,4 +1,5 @@
 using Schedule.Core.Entities;
+using Schedule.Core.Interfaces;
 using Schedule.Infra.Data.DependencyInjection;
 using Schedule.Infra.Data.DependencyInjection.Configuration;
 
@@ -59,7 +60,8 @@ builder.Services.Configure<DbOptions>(
 builder.Services.Configure<JWTOptions>(
     builder.Configuration.GetSection("Jwt"));
 
-builder.Services.AddInfraData(builder.Configuration);              
+builder.Services.AddInfraData(builder.Configuration); 
+
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
 var app = builder.Build();
@@ -85,6 +87,14 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.MapFallbackToFile("/index.html");
+
+// aplica o schema automaticamente na subida do app
+using (var scope = app.Services.CreateScope())
+{
+    var init = scope.ServiceProvider.GetRequiredService<ISchemaInitializer>();
+    await init.EnsureCreatedAsync();
+}
+
 
 app.Run();
 

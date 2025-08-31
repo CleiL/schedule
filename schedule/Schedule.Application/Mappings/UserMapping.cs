@@ -8,6 +8,7 @@ namespace Schedule.Application.Mappings
         public static UserResponseDto ToDto(this User e)
                    => new UserResponseDto
                    (
+                       e.UserId,
                        e.Email,
                        e.Role
                    );

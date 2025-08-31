@@ -13,6 +13,7 @@ namespace Schedule.Application.Services
     public class PatientService
         (
             IPatientRepository repository,
+            IUserRepository user,
             IAppointmentRepository _appointments,
             ILogger<PatientService> logger,
             IUnitOfWorkFactory uow
@@ -20,6 +21,7 @@ namespace Schedule.Application.Services
         : IPatientService
     {
         private readonly IPatientRepository _repository = repository;
+        private readonly IUserRepository _user = user;
         private readonly IAppointmentRepository _appointments = _appointments;
         private readonly IUnitOfWorkFactory _uowFactory = uow;
         private readonly ILogger<PatientService> _logger = logger;
@@ -52,6 +54,18 @@ namespace Schedule.Application.Services
 
                     await _repository.CreateAsync(paciente, ct);
 
+
+                    var user = new User
+                    {
+                        UserId = Guid.NewGuid(),
+                        Email = entity.Email.Trim(),
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword(entity.Password.Trim()),
+                        Role = "Patient",
+                        PatientId = paciente.PatientId
+                    };
+
+                    await _user.CreateAsync(user, ct);
+
                     await uow.CommitAsync(ct);
                     _logger.LogInformation("END criação de paciente {PacienteId}", paciente.PatientId);
                     return paciente.ToDto();
@@ -77,7 +91,20 @@ namespace Schedule.Application.Services
                 try
                 {
                     await uow.BeginAsync(ct);
+
+                    var hasAppointments = await _appointments.ExistsPatientAnyAsync(id, ct); 
+                    if (hasAppointments)
+                        throw new InvalidOperationException("Paciente possui consultas e não pode ser excluído.");
+
+                    var user = await _user.GetByPatientIdAsync(id, ct); 
+
+                    if (user is not null)
+                    {
+                        await _user.DeleteAsync(user.UserId, ct);
+                    }
+
                     var ok = await _repository.DeleteAsync(id, ct);
+
                     await uow.CommitAsync(ct);
                     return ok;
                 }
@@ -113,7 +140,7 @@ namespace Schedule.Application.Services
             }
         }
 
-        public async Task<IEnumerable<PatientDot.PatientResponseDto>> GetAppointmentAsync(CancellationToken ct = default)
+        public async Task<IEnumerable<PatientSchedulesResponseDto>> GetAppointmentAsync(CancellationToken ct = default)
         {
             await using var uow = await _uowFactory.CreateAsync(ct);
             try
@@ -126,15 +153,15 @@ namespace Schedule.Application.Services
 
                 foreach (var paciente in pacientes)
                 {
-                    var consultas = await _appointments.GetByHealthcareAsync(paciente.PatientId, ct);
+                    var consultas = await _appointments.GetByPatientAsync(paciente.PatientId, ct);
 
                     var dto = new PatientSchedulesResponseDto
                     (
                         paciente.PatientId,
-                        paciente.Name!,
-                        paciente.Email!,
-                        paciente.CPF!,
-                        consultas.Select(c => new AppointmentsReponseDto(
+                        paciente.Name,
+                        paciente.Email,
+                        paciente.CPF,
+                        consultas.Select(c => new AppointmentsResponseDto(
                             c.PatientId,
                             c.HealthcareId,
                             c.Date,
@@ -146,7 +173,7 @@ namespace Schedule.Application.Services
                 }
 
                 await uow.CommitAsync(ct);
-                return (IEnumerable<PatientResponseDto>)result;
+                return result;
             }
             catch (Exception ex)
             {
@@ -156,7 +183,7 @@ namespace Schedule.Application.Services
             }
         }
 
-        public async Task<PatientDot.PatientResponseDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
+        public async Task<PatientResponseDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
         {
             using (_logger.BeginScope(new Dictionary<string, object?>
             {
@@ -181,7 +208,7 @@ namespace Schedule.Application.Services
             }
         }
 
-        public async Task<PatientDot.PatientResponseDto> UpdateAsync(PatientDot.PatientUpdateDto entity, CancellationToken ct = default)
+        public async Task<PatientResponseDto> UpdateAsync(PatientUpdateDto entity, CancellationToken ct = default)
         {
             using (_logger.BeginScope(new Dictionary<string, object?>
             {
@@ -211,17 +238,42 @@ namespace Schedule.Application.Services
                         paciente.CPF = cpfNovo;
                     }
 
+                    bool emailMudou = false;
+                    var emailAntigo = paciente.Email;
+
                     if (emailNovo is not null && !emailNovo.Equals(paciente.Email, StringComparison.OrdinalIgnoreCase))
                     {
                         if (await _repository.ExistsByEmailAsync(emailNovo, entity.Id, ct))
-                            throw new InvalidOperationException("Email já cadastrado.");
+                            throw new InvalidOperationException("Email já cadastrado para paciente.");
+
                         paciente.Email = emailNovo;
+                        emailMudou = true;
                     }
 
                     if (nomeNovo is not null) paciente.Name = nomeNovo;
-                    if (emailNovo is not null) paciente.Email = emailNovo;
 
                     await _repository.UpdateAsync(paciente, ct);
+
+                    if (emailMudou)
+                    {
+                        var user = await _user.GetByEmailAsync(emailAntigo!, ct);
+
+                        if (user is null)
+                        {
+                            user = await _user.GetByEmailAsync(paciente.Email!, ct);
+                        }
+
+                        if (user is not null)
+                        {
+                            if (await _user.ExistsByEmailAsync(paciente.Email!, excludeId: user.UserId, ct))
+                                throw new InvalidOperationException("Email já cadastrado para login.");
+
+                            user.Email = paciente.Email!;
+                            user.PatientId = paciente.PatientId;
+
+                            await _user.UpdateAsync(user, ct);
+                        }
+                    }
 
                     await uow.CommitAsync(ct);
                     return paciente.ToDto();

@@ -37,6 +37,14 @@ namespace Schedule.Core.Interfaces
         Task<IEnumerable<DateTime>> GetProfessionalBusySchedules(Guid healthcareId, DateOnly day, CancellationToken ct = default);
 
         Task<bool> ExistsPatientAppointmentWithHealthcare( Guid patientId, Guid healthcareId, DateOnly day, CancellationToken ct = default);
+        Task<bool> ExistsPatientAnyAsync(Guid patientId, CancellationToken ct = default);
 
+        /// <summary>
+        /// Consulta todos os agendamentos de um profissional de saúde.
+        /// </summary>
+        /// <param name="healthcareId"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        Task<IEnumerable<Appointment>> GetByPatientAsync(Guid patientId, CancellationToken ct = default);
     }
 }

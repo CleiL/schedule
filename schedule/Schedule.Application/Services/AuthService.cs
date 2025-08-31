@@ -58,11 +58,9 @@ namespace Schedule.Application.Services
                 return new LoginResponseDto
                 (
                     token,
-                    user.Email!,
-                    user.Role!,
-                    user.UserId,
-                    PatientId: (Guid)user.PatientId!,
-                    HealthcareId: (Guid)user.HealthcareId!
+                    user.Email,
+                    user.Role,
+                    user.UserId
                 );
             }
             catch

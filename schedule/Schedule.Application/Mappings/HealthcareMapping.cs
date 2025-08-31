@@ -10,8 +10,8 @@ namespace Schedule.Application.Mappings
            (
                e.HealthcareId,
                e.Name,
-               e.CRM,
                e.Email,
+               e.CRM,
                e.Speciality
            );
 
@@ -20,8 +20,8 @@ namespace Schedule.Application.Mappings
             {
                 HealthcareId = Guid.NewGuid(),
                 Name = dto.Name?.Trim() ?? string.Empty,
-                CRM = dto.CRM?.Trim() ?? string.Empty,
                 Email = dto.Email?.Trim() ?? string.Empty,
+                CRM = dto.CRM?.Trim() ?? string.Empty,
                 Speciality = dto.Speciality?.Trim() ?? string.Empty
             };
     }
