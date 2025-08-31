@@ -13,16 +13,18 @@ namespace Schedule.Infra.Data.Context
 
         public SqlConnectionFactory(IOptions<DbOptions> opts)
         {
-            _cs = opts.Value.ConnectionString!;
+            _cs = opts.Value.ConnectionString
+                  ?? throw new InvalidOperationException("Database:ConnectionString não configurada.");
             if (string.IsNullOrWhiteSpace(_cs))
                 throw new InvalidOperationException("Database:ConnectionString não configurada.");
         }
 
-        public Task<IDbConnection> Create(CancellationToken ct = default)
+        public async Task<IDbConnection> Create(CancellationToken ct = default)
         {
-            IDbConnection connection = new SqlConnection(_cs);
-
-            return Task.FromResult(connection);
+            // <- use o tipo concreto aqui
+            var conn = new SqlConnection(_cs);
+            await conn.OpenAsync(ct);            
+            return conn;                          
         }
     }
 }

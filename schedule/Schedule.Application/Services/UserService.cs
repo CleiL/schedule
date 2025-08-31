@@ -105,6 +105,7 @@ namespace Schedule.Application.Services
 
                     return users.Select(u => new UserDto.UserResponseDto
                     (
+                        u.UserId,
                         u.Email,
                         u.Role
                     ));

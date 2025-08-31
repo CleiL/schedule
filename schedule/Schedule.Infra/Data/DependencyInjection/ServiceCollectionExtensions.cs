@@ -4,6 +4,7 @@ using Schedule.Application.Interfaces;
 using Schedule.Application.Services;
 using Schedule.Core.Entities;
 using Schedule.Core.Interfaces;
+using Schedule.Infra.Data.Context;
 using Schedule.Infra.Data.DependencyInjection.Configuration.Uow;
 using Schedule.Infra.Repositories;
 
@@ -17,6 +18,10 @@ namespace Schedule.Infra.Data.DependencyInjection
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IUnitOfWorkFactory, UnitOfWorkFactory>();
+
+            services.AddSingleton<IDbConnectionFactory, SqlConnectionFactory>();
+
+            services.AddSingleton<ISchemaInitializer, SchemaInitializer>();
 
             services.AddScoped<Context.SqlConnectionFactory>();
 

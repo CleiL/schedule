@@ -9,6 +9,6 @@ namespace Schedule.Application.Interfaces
         Task<bool> DeleteAsync(Guid id, CancellationToken ct = default);
         Task<PatientResponseDto?> GetByIdAsync(Guid id, CancellationToken ct = default);
         Task<IEnumerable<PatientResponseDto>> GetAllAsync(CancellationToken ct = default);
-        Task<IEnumerable<PatientResponseDto>> GetAppointmentAsync(CancellationToken ct = default);
+        Task<IEnumerable<PatientSchedulesResponseDto>> GetAppointmentAsync(CancellationToken ct = default);
     }
 }

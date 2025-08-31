@@ -1,9 +1,4 @@
 ﻿using Schedule.Core.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using static Schedule.Application.Dtos.Patients.PatientDot;
 
 namespace Schedule.Application.Mappings
@@ -15,8 +10,8 @@ namespace Schedule.Application.Mappings
            (
                e.PatientId,
                e.Name,
-               e.CPF,
-               e.Email
+               e.Email,
+               e.CPF
            );
 
         public static Patient ToEntity(this PatientCreateDto dto)
@@ -24,15 +19,15 @@ namespace Schedule.Application.Mappings
             {
                 PatientId = Guid.NewGuid(),
                 Name = dto.Name.Trim() ?? string.Empty,
-                CPF = dto.CPF.Trim() ?? string.Empty,
                 Email = dto.Email.Trim() ?? string.Empty,
+                CPF = dto.CPF.Trim() ?? string.Empty,
             };
 
         public static void Apply(this Patient entity, PatientUpdateDto dto)
         {
             entity.Name = dto.Name?.Trim() ?? string.Empty;
-            entity.CPF = dto.CPF?.Trim() ?? string.Empty;
             entity.Email = dto.Email?.Trim() ?? string.Empty;
+            entity.CPF = dto.CPF?.Trim() ?? string.Empty;
         }
     }
 }

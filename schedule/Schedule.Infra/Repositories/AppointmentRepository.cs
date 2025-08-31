@@ -302,5 +302,35 @@ namespace Schedule.Infra.Repositories
 
             return exists.HasValue;
         }
+
+        public async Task<bool> ExistsPatientAnyAsync(Guid patientId, CancellationToken ct = default)
+        {
+            const string sql = """
+                SELECT 1
+                  FROM dbo.Appointments
+                 WHERE PatientId = @PatientId
+            """;
+
+            var exists = await Conn.ExecuteScalarAsync<int?>(
+                new CommandDefinition(sql, new { PatientId = patientId }, transaction: Tx, commandTimeout: 15, cancellationToken: ct)
+            );
+
+            return exists.HasValue;
+        }
+
+        public async Task<IEnumerable<Appointment>> GetByPatientAsync(Guid patientId, CancellationToken ct = default)
+        {
+            const string sql = """
+                SELECT AppointmentId, StartAt,
+                       DATEADD(MINUTE,30,StartAt) AS EndAt,
+                       PatientId, HealthcareId
+                  FROM dbo.Appointments
+                 WHERE PatientId = @patientId
+                 ORDER BY StartAt DESC;
+                """;
+
+            return await Conn.QueryAsync<Appointment>(new CommandDefinition(
+                sql, new { PatientId = patientId }, transaction: Tx, commandTimeout: 15, cancellationToken: ct));
+        }
     }
 }

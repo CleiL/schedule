@@ -17,7 +17,8 @@ namespace Schedule.Application.Services
             ILogger<HealthcareService> logger,
             IUnitOfWorkFactory uow,
             IHealthcareRepository repository,
-            IAppointmentRepository appointments
+            IAppointmentRepository appointments,
+            IUserRepository user
         )
         : IHealthcareService
     {
@@ -25,6 +26,7 @@ namespace Schedule.Application.Services
         private readonly IUnitOfWorkFactory _uowFactory = uow;
         private readonly IHealthcareRepository _repository = repository;
         private readonly IAppointmentRepository _appointments = appointments;
+        private readonly IUserRepository _user = user;
 
         public async Task<HealthcareDto.HealthcareResponseDto> CreateAsync(HealthcareDto.HealthcareCreateDto entity, CancellationToken ct = default)
         {
@@ -38,6 +40,12 @@ namespace Schedule.Application.Services
                 {
                     await uow.BeginAsync(ct);
 
+                    if (await _repository.ExistsByCrmAsync(entity.CRM.Trim(), null, ct))
+                        throw new InvalidOperationException("CRM já cadastrado.");
+
+                    if (await _repository.ExistsByEmailAsync(entity.Email.Trim().ToLowerInvariant(), null, ct))
+                        throw new InvalidOperationException("Email já cadastrado.");
+
                     var medico = new Healthcare
                     {
                         HealthcareId = Guid.NewGuid(),
@@ -46,15 +54,32 @@ namespace Schedule.Application.Services
                         Email = entity.Email?.Trim() ?? string.Empty,
                         Speciality = entity.Speciality?.Trim() ?? string.Empty
                     };
+
                     await _repository.CreateAsync(medico, ct);
+
+                    var user = new User
+                    {
+                        UserId = Guid.NewGuid(),
+                        Email = entity.Email.Trim().Trim(),
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword(entity.Password.Trim()),
+                        Role = "Healthcare",
+                        HealthcareId = medico.HealthcareId
+                    };
+
+                    await _user.CreateAsync(user, ct);
+
                     await uow.CommitAsync(ct);
+
                     _logger.LogInformation("END criação de médico {HealthcareId}", medico.HealthcareId);
+
                     return medico.ToDto();
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Erro ao criar médico");
+
                     await uow.RollbackAsync(ct);
+
                     throw;
                 }
             }
@@ -72,7 +97,20 @@ namespace Schedule.Application.Services
                 try
                 {
                     await uow.BeginAsync(ct);
+
+                    var hasAppointments = await _appointments.ExistsPatientAnyAsync(id, ct);
+                    if (hasAppointments)
+                        throw new InvalidOperationException("Paciente possui consultas e não pode ser excluído.");
+
+                    var user = await _user.GetByHealthcareIdAsync(id, ct);
+
+                    if (user is not null)
+                    {
+                        await _user.DeleteAsync(user.UserId, ct);
+                    }
+
                     var result = await _repository.DeleteAsync(id, ct);
+
                     await uow.CommitAsync(ct);
                     _logger.LogInformation("Excluído médico {HealthcareId}", id);
                     return result;
@@ -110,7 +148,7 @@ namespace Schedule.Application.Services
             }
         }
 
-        public async Task<IEnumerable<HealthcareDto.HealthcareResponseDto>> GetAppintmentAsync(CancellationToken ct = default)
+        public async Task<IEnumerable<HealthcareSchedulesResponseDto>> GetAppointmentAsync(CancellationToken ct = default)
         {
             await using var uow = await _uowFactory.CreateAsync(ct);
             await uow.BeginAsync(ct);
@@ -118,7 +156,7 @@ namespace Schedule.Application.Services
             try
             {
                 var medicos = await _repository.GetAllAsync(ct);
-                var result = new List<HealthcareDto.HealthcareSchedulesResponseDto>();
+                var result = new List<HealthcareSchedulesResponseDto>();
 
                 foreach (var m in medicos)
                 {
@@ -131,7 +169,7 @@ namespace Schedule.Application.Services
                         m.Email ?? string.Empty,
                         m.CRM ?? string.Empty,
                         m.Speciality ?? string.Empty,
-                        consultas.Select(c => new AppointmentsReponseDto(
+                        consultas.Select(c => new AppointmentsResponseDto(
                             c.PatientId,
                             c.HealthcareId,
                             c.Date,
@@ -143,7 +181,7 @@ namespace Schedule.Application.Services
                 }
 
                 await uow.CommitAsync(ct);
-                return (IEnumerable<HealthcareResponseDto>)result;
+                return result;
             }
             catch
             {
@@ -182,7 +220,7 @@ namespace Schedule.Application.Services
             }
         }
 
-        public async Task<HealthcareDto.HealthcareResponseDto> UpdateAsync(HealthcareDto.HealthcareUpdateDto entity, CancellationToken ct = default)
+        public async Task<HealthcareResponseDto> UpdateAsync(HealthcareUpdateDto entity, CancellationToken ct = default)
         {
             using (_logger.BeginScope(new Dictionary<string, object?>
             {
@@ -196,63 +234,87 @@ namespace Schedule.Application.Services
                     await uow.BeginAsync(ct);
 
                     var medico = await _repository.GetByIdAsync(entity.Id, ct)
-                        ?? throw new KeyNotFoundException("Medico não encontrado");
+                                 ?? throw new KeyNotFoundException("Medico não encontrado.");
 
+                    // helpers de normalização
                     static string? NullIfWhite(string? s) => string.IsNullOrWhiteSpace(s) ? null : s!.Trim();
-                    static string? OnlyCrmOrNull(string? s)
+                    static string NormalizeEmail(string e) => e.Trim().ToLowerInvariant();
+                    static string NormalizeCrmOrThrow(string raw)
                     {
-                        if (string.IsNullOrWhiteSpace(s))
-                            return null;
-
+                        var s = raw.Trim().ToUpperInvariant();
+                        // Ex.: CRM/SP 123456 (ajuste ao padrão que você desejar)
                         var pattern = @"^CRM/[A-Z]{2}\s\d{1,6}$";
-                        return Regex.IsMatch(s.Trim(), pattern, RegexOptions.IgnoreCase)
-                            ? s.Trim().ToUpperInvariant()
-                            : null;
+                        if (!Regex.IsMatch(s, pattern, RegexOptions.IgnoreCase))
+                            throw new InvalidOperationException("CRM em formato inválido. Ex.: CRM/SP 123456");
+                        return s;
                     }
 
+                    // só pega campos enviados (parciais)
                     var nomeNovo = NullIfWhite(entity.Name);
-                    var crmNovo = OnlyCrmOrNull(entity.CRM);
-                    var emailNovo = NullIfWhite(entity.Email)?.ToLowerInvariant();
-                    var especialidadeNovo = NullIfWhite(entity.Speciality);
+                    var emailNovoRaw = NullIfWhite(entity.Email);
+                    var emailNovo = emailNovoRaw is null ? null : NormalizeEmail(emailNovoRaw);
+                    var crmNovoRaw = NullIfWhite(entity.CRM);
+                    var crmNovo = crmNovoRaw is null ? null : NormalizeCrmOrThrow(crmNovoRaw);
+                    var especialidadeNova = NullIfWhite(entity.Speciality);
 
-                    if (crmNovo is not null && !crmNovo.Equals(medico?.CRM, StringComparison.OrdinalIgnoreCase))
+                    // --- CRM ---
+                    if (crmNovo is not null && !crmNovo.Equals(medico.CRM, StringComparison.OrdinalIgnoreCase))
                     {
-                        var crmExists = await _repository.ExistsByCrmAsync(crmNovo, entity.Id, ct);
-                        if (crmExists)
+                        if (await _repository.ExistsByCrmAsync(crmNovo, entity.Id, ct))
                             throw new InvalidOperationException("CRM já cadastrado.");
+                        medico.CRM = crmNovo;
                     }
 
-                    if (emailNovo is not null && !emailNovo.Equals(medico?.Email, StringComparison.OrdinalIgnoreCase))
+                    // --- E-mail (domínio de Healthcare) + sync com Users ---
+                    bool emailMudou = false;
+                    var emailAntigo = medico.Email;
+
+                    if (emailNovo is not null && !emailNovo.Equals(medico.Email, StringComparison.OrdinalIgnoreCase))
                     {
+                        // unicidade no domínio de profissionais
                         if (await _repository.ExistsByEmailAsync(emailNovo, entity.Id, ct))
                             throw new InvalidOperationException("Email já cadastrado.");
 
-                        if (medico is not null && emailNovo is not null && !emailNovo.Equals(medico.Email, StringComparison.OrdinalIgnoreCase))
-                        {
-                            if (await _repository.ExistsByEmailAsync(emailNovo, entity.Id, ct))
-                                throw new InvalidOperationException("Email já cadastrado.");
-                            medico.Email = emailNovo;
-                        }
-
+                        medico.Email = emailNovo;
+                        emailMudou = true;
                     }
 
-                    if (nomeNovo is not null && medico is not null) medico.Name = nomeNovo;
-                    if (crmNovo is not null && medico is not null) medico.CRM = crmNovo;
-                    if (emailNovo is not null && medico is not null) medico.Email = emailNovo;
-                    if (especialidadeNovo is not null && medico is not null) medico.Speciality = especialidadeNovo;
+                    // --- Nome/Especialidade (parciais) ---
+                    if (nomeNovo is not null) medico.Name = nomeNovo;
+                    if (especialidadeNova is not null) medico.Speciality = especialidadeNova;
 
-                    if (medico is null)
-                        throw new KeyNotFoundException("Medico não encontrado para atualização.");
+                    // Persiste o Healthcare
+                    await _repository.UpdateAsync(medico, ct);
 
-                    _ = await _repository.UpdateAsync(medico, ct);
+                    // Sincroniza Users se o e-mail do médico mudou
+                    if (emailMudou)
+                    {
+                        // Pega o user vinculado ao healthcare
+                        var user = await _user.GetByHealthcareIdAsync(medico.HealthcareId, ct);
+                        if (user is not null)
+                        {
+                            // garante unicidade no Users (exclui o próprio)
+                            if (await _user.ExistsByEmailAsync(medico.Email!, excludeId: user.UserId, ct))
+                                throw new InvalidOperationException("Email já cadastrado para login.");
+
+                            user.Email = medico.Email!;
+                            user.HealthcareId = medico.HealthcareId; // garante vínculo
+                            await _user.UpdateAsync(user, ct);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Médico {HealthcareId} sem usuário vinculado ao atualizar e-mail.", medico.HealthcareId);
+                            // Se preferir, crie aqui o user “perdido” — decisão de negócio
+                        }
+                    }
 
                     await uow.CommitAsync(ct);
-                    _logger.LogInformation("Atualizado médico {MedicoId}", entity.Id);
+                    _logger.LogInformation("Atualizado médico {HealthcareId}", entity.Id);
                     return medico.ToDto();
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Erro ao atualizar médico {MedicoId}", entity.Id);
+                    _logger.LogError(ex, "Erro ao atualizar médico {HealthcareId}", entity.Id);
                     await uow.RollbackAsync(ct);
                     throw;
                 }

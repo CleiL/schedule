@@ -115,6 +115,20 @@ namespace Schedule.Infra.Repositories
                 new CommandDefinition(sql, new { Email = email }, transaction: Tx, commandTimeout: 15, cancellationToken: ct));
         }
 
+        public async Task<User?> GetByHealthcareIdAsync(Guid helthcareId, CancellationToken ct = default)
+        {
+            const string sql = """
+                SELECT TOP 1
+                       UserId, Email, PasswordHash, Role, PatientId, HealthcareId
+                  FROM dbo.Users
+                 WHERE HealthcareId = @HealthcareId
+            """;
+
+            return await Conn.QuerySingleOrDefaultAsync<User>(
+                new CommandDefinition(sql, new { HealthcareId = helthcareId }, transaction: Tx, commandTimeout: 15, cancellationToken: ct)
+            );
+        }
+
         public async Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default)
         {
             const string sql = """
@@ -126,6 +140,20 @@ namespace Schedule.Infra.Repositories
             _logger.LogDebug("Consultando usuário por ID {id}", id);
             return await Conn.QuerySingleOrDefaultAsync<User>(
                 new CommandDefinition(sql, new { id }, transaction: Tx, commandTimeout: 15, cancellationToken: ct));
+        }
+
+        public async Task<User?> GetByPatientIdAsync(Guid patientId, CancellationToken ct = default)
+        {
+            const string sql = """
+                SELECT TOP 1
+                       UserId, Email, PasswordHash, Role, PatientId, HealthcareId
+                  FROM dbo.Users
+                 WHERE PatientId = @PatientId
+            """;
+
+            return await Conn.QuerySingleOrDefaultAsync<User>(
+                new CommandDefinition(sql, new { PatientId = patientId }, transaction: Tx, commandTimeout: 15, cancellationToken: ct)
+            );
         }
 
         public async Task<User> UpdateAsync(User entity, CancellationToken ct = default)
